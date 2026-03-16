@@ -38,7 +38,7 @@ def call(Map config = [:]) {
                 git add ${manifestsPath}/*.yml
                 git commit -m "chore: bump image tag ${imageTag} + ingress host [ci skip]"
                 git remote set-url origin https://${GIT_USERNAME}@github.com/sauravmishra07/Jobportal-DevOps-Project.git
-                git push origin HEAD:main || git push origin HEAD:master
+                git push origin HEAD:\${GIT_BRANCH}
                 echo "✅ Successfully updated and pushed manifests"
             else
                 echo "ℹ️ No changes detected"
