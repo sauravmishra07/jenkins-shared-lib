@@ -1,18 +1,17 @@
 #!/usr/bin/env groovy
 
 /**
- * Update Kubernetes manifests with new image tags
+ * Update Kubernetes manifests - Fixed for .yml files
  */
 def call(Map config = [:]) {
     def imageTag = config.imageTag ?: error("Image tag is required")
     def manifestsPath = config.manifestsPath ?: 'kubernetes'
     def gitCredentials = config.gitCredentials ?: 'github-credentials'
     def gitUserName = config.gitUserName ?: 'Jenkins CI'
-    def gitUserEmail = config.gitUserEmail ?: 'jenkins@example.com'
+    def gitUserEmail = config.gitUserEmail ?: 'sauravmishra499@gmail.com'
     
-    echo "Updating Kubernetes manifests with image tag: ${imageTag}"
-    echo "Ingress host set to: 54.76.194.89.nip.io"
-    echo "Access app at: http://54.76.194.89.nip.io"
+    echo "Updating ${manifestsPath} manifests with image tag: ${imageTag}"
+    echo "Access: http://54.76.194.89.nip.io"
     
     withCredentials([usernamePassword(
         credentialsId: gitCredentials,
@@ -25,23 +24,24 @@ def call(Map config = [:]) {
         """
         
         sh """
-            # Update deployment image
-            sed -i "s|image: sauravmishra07/jobportal:.*|image: sauravmishra07/jobportal:${imageTag}|g" ${manifestsPath}/07-jobportal-deployment.yml
+            # Update deployment (matches your exact image: sauravmishra07/jobportal)
+            sed -i 's|image: sauravmishra07/jobportal:.*|image: sauravmishra07/jobportal:${imageTag}|g' ${manifestsPath}/07-jobportal-deployment.yml
             
-            # Ensure ingress uses IP-based nip.io hostname
+            # Update ingress host to IP.nip.io
             if [ -f "${manifestsPath}/09-ingress.yml" ]; then
-                sed -i "s|host: .*|host: 54.76.194.89.nip.io|g" ${manifestsPath}/09-ingress.yml
+                sed -i 's|host: .*|host: 54.76.194.89.nip.io|g' ${manifestsPath}/09-ingress.yml
             fi
         """
         
         sh """
-            if git diff --quiet; then
-                echo "No changes to commit"
+            if ! git diff --quiet; then
+                git add ${manifestsPath}/*.yml
+                git commit -m "chore: bump image tag ${imageTag} + ingress host [ci skip]"
+                git remote set-url origin https://${GIT_USERNAME}@github.com/sauravmishra07/Jobportal-DevOps-Project.git
+                git push origin HEAD:main || git push origin HEAD:master
+                echo "✅ Successfully updated and pushed manifests"
             else
-                git add ${manifestsPath}/*.yaml ${manifestsPath}/*.yml
-                git commit -m "chore: update image tag ${imageTag} + ingress host [ci skip]" || true
-                git remote set-url origin https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/sauravmishra07/Jobportal-DevOps-Project.git
-                git push origin HEAD:\${GIT_BRANCH}
+                echo "ℹ️ No changes detected"
             fi
         """
     }
